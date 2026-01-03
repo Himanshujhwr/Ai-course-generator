@@ -1,16 +1,46 @@
 import { NextResponse } from "next/server";
-import { generateCourseLayout } from "@/configs/AiModel";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(req) {
   try {
-    const { prompt } = await req.json();
+    const { userCourseInput } = await req.json();
 
-    const text = await generateCourseLayout(prompt);
+    if (!userCourseInput) {
+      return NextResponse.json(
+        { error: "Missing userCourseInput" },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ text });
+    const prompt = `
+Generate a Course Tutorial in JSON format.
+
+Category: ${userCourseInput.category}
+Topic: ${userCourseInput.topic}
+Level: ${userCourseInput.level}
+Duration: ${userCourseInput.duration}
+Number of Chapters: ${userCourseInput.noOfChapters}
+
+Return STRICT JSON only.
+    `;
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+
+    return NextResponse.json({
+      courseLayout: JSON.parse(text),
+    });
   } catch (err) {
-    console.error("🔥 GEMINI FAILED:", err.message);
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("🔥 GENERATE COURSE ERROR:", err);
+    return NextResponse.json(
+      { error: "Failed to generate course" },
+      { status: 500 }
+    );
   }
 }

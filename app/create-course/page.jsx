@@ -139,12 +139,9 @@
 //   )
 // }
 
-// export default CreateCourse
-export const dynamic = "force-dynamic";
+"use client";
 
-("use client");
-
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { RiStackFill } from "react-icons/ri";
 import { HiLightBulb } from "react-icons/hi";
 import { HiClipboardDocumentCheck } from "react-icons/hi2";
@@ -153,9 +150,8 @@ import SelectCategory from "./_components/SelectCategory";
 import TopicDescription from "./_components/TopicDescription";
 import SelectOption from "./_components/SelectOption";
 import { UserInputContext } from "../_context/UserInputContext";
-//import { generateCourseLayout } from "@/configs/AiModel";
 import LoadingDialog from "./_components/LoadingDialog";
-import { db } from "@/configs/db";
+
 import { CourseList } from "@/configs/schema";
 import { v4 as uuidv4 } from "uuid";
 import { useUser } from "@clerk/nextjs";
@@ -177,18 +173,8 @@ function CreateCourse() {
   const checkStatus = () => {
     if (!userCourseInput) return true;
 
-    if (
-      activeIndex === 0 &&
-      (!userCourseInput.category || userCourseInput.category.length === 0)
-    )
-      return true;
-
-    if (
-      activeIndex === 1 &&
-      (!userCourseInput.topic || userCourseInput.topic.length === 0)
-    )
-      return true;
-
+    if (activeIndex === 0 && !userCourseInput.category) return true;
+    if (activeIndex === 1 && !userCourseInput.topic) return true;
     if (
       activeIndex === 2 &&
       (!userCourseInput.level ||
@@ -204,88 +190,43 @@ function CreateCourse() {
     try {
       setLoading(true);
 
-      const BASIC_PROMPT =
-        "Generate a Course Tutorial with Course Name, Description, Chapters (name, about, duration) in JSON format.";
-
-      const USER_INPUT_PROMPT = `
-      Category: ${userCourseInput.category},
-      Topic: ${userCourseInput.topic},
-      Level: ${userCourseInput.level},
-      Duration: ${userCourseInput.duration},
-      Chapters: ${userCourseInput.noOfChapters}
-    `;
-
-      const FINAL_PROMPT = BASIC_PROMPT + USER_INPUT_PROMPT;
-
       const res = await fetch("/api/generate-course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: FINAL_PROMPT }),
+        body: JSON.stringify({ userCourseInput }),
       });
 
-      if (!res.ok) {
-        throw new Error("API failed");
-      }
+      if (!res.ok) throw new Error("API failed");
 
       const data = await res.json();
-      const courseLayout = JSON.parse(data.text);
-
-      await SaveCourseLayoutInDb(courseLayout);
-    } catch (error) {
-      console.error("COURSE GENERATION FAILED:", error);
-      alert("Failed to generate course. Try again.");
+      await SaveCourseLayoutInDb(data.courseLayout);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate course");
     } finally {
       setLoading(false);
     }
   };
 
   const SaveCourseLayoutInDb = async (courseLayout) => {
-    const id = uuidv4();
-
-    await db.insert(CourseList).values({
-      courseId: id,
-      name: userCourseInput.topic,
-      level: userCourseInput.level,
-      category: userCourseInput.category,
-      courseOutput: courseLayout,
-      createdBy: user?.primaryEmailAddress?.emailAddress,
-      userName: user?.fullName,
-      userProfileImage: user?.imageUrl,
+    const res = await fetch("/api/save-course", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseLayout,
+        userCourseInput,
+      }),
     });
 
-    router.replace("/create-course/" + id);
+    const data = await res.json();
+    router.replace("/create-course/" + data.courseId);
   };
 
   return (
     <div>
-      <div className="flex flex-col justify-center items-center mt-10">
-        <h2 className="text-5xl text-primary font-semibold">Create Course</h2>
-
-        <div className="flex mt-10">
-          {StepperOptions.map((item, index) => (
-            <div key={item.id} className="flex items-center">
-              <div className="flex flex-col items-center w-[80px]">
-                <div
-                  className={`p-3 rounded-full text-white ${
-                    activeIndex >= index ? "bg-primary" : "bg-gray-300"
-                  }`}
-                >
-                  {item.icon}
-                </div>
-                <h2 className="text-sm mt-2">{item.name}</h2>
-              </div>
-
-              {index !== StepperOptions.length - 1 && (
-                <div
-                  className={`h-1 w-20 ${
-                    activeIndex > index ? "bg-primary" : "bg-gray-300"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      <h2 className="text-5xl text-primary font-semibold text-center mt-10">
+        Create Course
+      </h2>
 
       <div className="px-10 md:px-20 lg:px-44 mt-10">
         {activeIndex === 0 ? (

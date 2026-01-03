@@ -111,7 +111,9 @@
 // export default CourseLayout;
 export const dynamic = "force-dynamic";
 
-import { db } from "@/configs/db";
+//import { db } from "@/configs/db";
+import { GenerateChapterContent_AI } from "@/configs/AiModel";
+
 import { CourseList, Chapters } from "@/configs/schema";
 import { and, eq } from "drizzle-orm";
 import CourseBasicInfo from "./_components/CourseBasicInfo";

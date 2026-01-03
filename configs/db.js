@@ -18,10 +18,11 @@
 // export const db = drizzle(sql, { schema });
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.NEXT_PUBLIC_DRIZZLE_DB_URL;
+const databaseUrl =
+  process.env.DATABASE_URL || process.env.NEXT_PUBLIC_DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("DATABASE URL not found");
+  console.warn("⚠️ DATABASE_URL not found. DB disabled during build.");
 }
 
-export const db = neon(databaseUrl);
+export const db = databaseUrl ? neon(databaseUrl) : null;

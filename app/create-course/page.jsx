@@ -140,8 +140,9 @@
 // }
 
 // export default CreateCourse
+export const dynamic = "force-dynamic";
 
-"use client";
+("use client");
 
 import React, { useContext, useEffect, useState } from "react";
 import { RiStackFill } from "react-icons/ri";
